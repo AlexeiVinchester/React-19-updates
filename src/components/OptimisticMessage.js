@@ -1,22 +1,40 @@
-import { useRef, useState } from 'react'
+import { useOptimistic, useRef, useState } from 'react'
 
 async function sendMessage(message) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     setTimeout(() => {
-      resolve(message)
-    }, 1000)
-  })
+      if (Math.random() < 0.3) {
+        reject(new Error("Failed to send message")); 
+      } else {
+        resolve(message);
+      }
+    }, 1000);
+  });
 }
 
-export default function OptimisticMessage() {
+export function OptimisticMessage() {
   const formRef = useRef()
   const [messages, setMessages] = useState([])
 
+
+  const [optimisticMessages, addOptimisticMessage] = useOptimistic(
+    messages,
+    (prevState, newMessage) => {
+      return [...prevState, { text: newMessage, pending: true }];
+    }
+  )
+
   async function formAction(formData) {
+    addOptimisticMessage(formData.get('message'));
     formRef.current.reset()
-    const message = await sendMessage(formData.get('message'))
-    setMessages((messages) => [...messages, { text: message, pending: false }])
+    try {
+      const message = await sendMessage(formData.get('message'))
+      setMessages((messages) => [...messages, { text: message, pending: false }])
+    } catch (error) {
+      console.log('Failed to add new message! - ', error.message)
+    }
   }
+
   return (
     <form ref={formRef} action={formAction}>
       <div className="input-field">
@@ -26,7 +44,7 @@ export default function OptimisticMessage() {
         Send
       </button>
       <ul className="collection">
-        {messages.map((message, i) => (
+        {optimisticMessages.map((message, i) => (
           <li className="collection-item" key={i}>
             {message.text} {message.pending && <small>(Adding)</small>}
           </li>
@@ -35,3 +53,5 @@ export default function OptimisticMessage() {
     </form>
   )
 }
+
+
