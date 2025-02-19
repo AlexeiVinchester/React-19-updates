@@ -1,15 +1,39 @@
-import { useState, useEffect } from 'react'
+import React, { Suspense, use } from 'react'
 
-export default function UseExample() {
-  const [users, setUsers] = useState([])
-
-  useEffect(() => {
-    async function fetchUsers() {
-      const response = await fetch('https://jsonplaceholder.typicode.com/users')
-      setUsers(await response.json())
+const loadUsers = new Promise((resolve, reject) => {
+  setTimeout(async () => {
+    try {
+      const response = await fetch('https://jsonplaceholder.typicode.com/users');
+      const data = await response.json();
+      resolve(data)
+    } catch (error) {
+      reject(error)
     }
-    fetchUsers()
-  }, [])
+  }, 1500)
+})
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <p>Ошибка загрузки данных. Попробуйте обновить страницу.</p>;
+    }
+    return this.props.children;
+  }
+}
+
+
+
+function UsersList() {
+  const users = use(loadUsers);
 
   return (
     <>
@@ -22,4 +46,15 @@ export default function UseExample() {
       </ul>
     </>
   )
+}
+
+export const UseExample = () => {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<p>Loading.....</p>}>
+        <UsersList />
+      </Suspense>
+    </ErrorBoundary>
+
+  );
 }
