@@ -1,27 +1,60 @@
-import { useImperativeHandle, useRef, forwardRef } from 'react'
+import { useRef, useState } from 'react'
 
-const AppInput = forwardRef(({ ref }) => {
-  const inputRef = useRef()
 
-  useImperativeHandle(ref, () => ({
-    focus: () => inputRef.current.focus(),
-  }))
 
-  return (
-    <div className="input-field">
-      <input ref={inputRef} />
-    </div>
-  )
-})
+export const ChildRefContainer = ({ref}) => {
 
-export default function RefExample() {
-  const ref = useRef()
+  const handleClickChildButton = () => {
+    console.log('Child button was clicked!')
+  }
+
   return (
     <>
-      <AppInput ref={ref} />
-      <button className="btn" onClick={() => ref.current.focus()}>
-        Focus
+      <button 
+        className='btn'
+        ref={(prevRef) => {
+        if (prevRef) {
+          console.log('Div was mounted')
+          prevRef.addEventListener('click', handleClickChildButton);
+          ref.current = prevRef
+        }
+
+        return () => {
+          prevRef.removeEventListener('click', handleClickChildButton)
+          console.log('Div was unmounted')
+        }
+      }}>
+        Child Button
       </button>
     </>
   )
+}
+
+export const ParentRefContainer = () => {
+  const [show, setShow] = useState(true);
+  const divRef = useRef(null);
+
+  const handleClickParentButton = () => {
+    if (divRef.current) {
+      divRef.current.click();
+    }
+  }
+
+  return (
+    <>
+      <button
+        className='btn'
+        onClick={() => setShow((prev) => !prev)}
+      >
+        {show ? 'Close ref' : 'Open ref'}
+      </button>
+      <button
+        className='btn'
+        onClick={handleClickParentButton}
+      >
+        Parent Button
+      </button>
+      {show && <ChildRefContainer ref={divRef} />}
+    </>
+  );
 }
